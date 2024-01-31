@@ -1,4 +1,5 @@
 import MaxWidthWrapper from '@/components/MaxWidthWrapper';
+import ProductReel from '@/components/ProductReel';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { perks } from '@/constants';
 import Link from 'next/link';
@@ -25,7 +26,7 @@ const page = () => {
             <Button variant='ghost'>Our quality promise &rarr;</Button>
           </div>
         </div>
-        {/* {TODO : List products} */}
+        <ProductReel title='Brand new' query={{ sort: 'desc', limit: 3 }} />
       </MaxWidthWrapper>
       <section className='border-t border-gray-200 bg-gray-50'>
         <MaxWidthWrapper className='py-20'>

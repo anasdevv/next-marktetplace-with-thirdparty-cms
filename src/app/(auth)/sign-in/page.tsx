@@ -14,14 +14,17 @@ import {
 import { trpc } from '@/trpc/client';
 import { toast } from 'sonner';
 import { ZodError } from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const page = () => {
   const router = useRouter();
-  const { mutate, isLoading } = trpc.auth.createPayloadUser.useMutation({
+  const searchParams = useSearchParams();
+  const isSeller = searchParams.get('as') === 'seller';
+  const origin = searchParams.get('origin');
+  const { mutate: signIn, isLoading } = trpc.auth.signIn.useMutation({
     onError: (err) => {
-      if (err.data?.code === 'CONFLICT') {
-        toast.error('This email is already in use. Sign in instead ?');
+      if (err.data?.code === 'UNAUTHORIZED') {
+        toast.error('Invalid email or password');
         return;
       }
       if (err instanceof ZodError) {
@@ -30,12 +33,26 @@ const page = () => {
       }
       toast.error('Something went wrong. Please try again');
     },
-    onSuccess: ({ sentToEmail }) => {
-      toast.success(`Verification email sent to ${sentToEmail}`);
-      router.push(`/verify-email?to=${sentToEmail}`);
+    onSuccess: () => {
+      toast.success('Signed in sucessfully');
+      router.refresh();
+      if (origin) {
+        router.push(`/${origin}`);
+        return;
+      }
+      if (isSeller) {
+        router.push('/sell');
+        return;
+      }
+      router.push('/');
     },
   });
-
+  const continueAsBuyer = () => {
+    router.replace('/sign-in', undefined);
+  };
+  const continueAsSeller = () => {
+    router.push('?as=seller');
+  };
   const {
     register,
     handleSubmit,
@@ -46,7 +63,7 @@ const page = () => {
   console.log('errors ', errors);
   const onSubmit = ({ email, password }: TAuthScehma) => {
     console.log(`onSubmit`, { email, password });
-    mutate({
+    signIn({
       email,
       password,
     });
@@ -94,6 +111,31 @@ const page = () => {
             <Button>Sign in</Button>
           </div>
         </form>
+        <div className='relative'>
+          <div className='absolute inset-0 flex items-center '>
+            <span className='w-full border-t' />
+          </div>
+          <div className='relative flex justify-center text-xs uppercase'>
+            <span className='bg-background px-2 text-muted-foreground'>or</span>
+          </div>
+        </div>
+        {isSeller ? (
+          <Button
+            variant='secondary'
+            disabled={isLoading}
+            onClick={continueAsBuyer}
+          >
+            Continue as buyer
+          </Button>
+        ) : (
+          <Button
+            variant='secondary'
+            disabled={isLoading}
+            onClick={continueAsSeller}
+          >
+            Continue as seller
+          </Button>
+        )}
       </div>
     </>
   );
